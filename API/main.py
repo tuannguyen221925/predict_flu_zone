@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import numpy as np
@@ -13,7 +14,21 @@ from pymongo import MongoClient
 # 1. Khởi tạo ứng dụng FastAPI
 app = FastAPI(title="Hệ thống Dự báo Sốt xuất huyết & Big Data MongoDB")
 
-# 2. CẤU HÌNH KẾT NỐI MONGODB
+# 2. THÊM CORS MIDDLEWARE ĐỂ CHO PHÉP REACT (LOCALHOST) KẾT NỐI
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",      # React dev server (port 3000)
+        "http://localhost:5173",      # Vite dev server (port 5173)
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# 3. CẤU HÌNH KẾT NỐI MONGODB
 try:
     client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=5000)
     db = client["dengue_bigdata_db"]
@@ -23,7 +38,7 @@ try:
 except Exception as e:
     print(f"⚠️ Lỗi kết nối MongoDB: {e}")
 
-# 3. CẤU HÌNH API THỜI TIẾT (OpenWeatherMap)
+# 4. CẤU HÌNH API THỜI TIẾT (OpenWeatherMap)
 WEATHER_API_KEY = "862e70d3da664d7d00121f16524c1e66" 
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 
@@ -49,7 +64,7 @@ ZONE_COORDINATES = {
     "TienGiang": {"lat": 10.3592, "lon": 106.3570}
 }
 
-# 4. NẠP MÔ HÌNH MLP & SCALER
+# 5. NẠP MÔ HÌNH MLP & SCALER
 MODELS_DIR = r"E:\predict_zone_flu\models"
 scaler_y = None
 
@@ -66,7 +81,7 @@ except Exception as e:
     print(f" Lỗi nạp mô hình: {e}")
 
 # ============================================
-# 5. ĐỊNH NGHĨA CẤU TRÚC DỮ LIỆU (Pydantic Schemas)
+# 6. ĐỊNH NGHĨA CẤU TRÚC DỮ LIỆU (Pydantic Schemas)
 # ============================================
 class PredictionRequest(BaseModel):
     zone_name: str
@@ -94,7 +109,7 @@ class AutoPredictRequest(BaseModel):
     dengue_trends: Optional[int] = 50
     symptoms_trends: Optional[int] = 20
 
-# 6. HÀM TIỆN ÍCH
+# 7. HÀM TIỆN ÍCH
 ORDERED_COLUMNS = [
     'avg_temp_max', 'avg_temp_med', 'sum_precip_tot', 'avg_humid',
     'dengue_trends', 'symptoms_trends', 'lag1', 'lag2', 'lag3', 'ma4'
@@ -148,7 +163,7 @@ def get_latest_lags(zone_name: str):
     
     return {"lag1": lag1, "lag2": lag2, "lag3": lag3, "ma4": ma4}
 
-# 7. ENDPOINT DỰ BÁO THỦ CÔNG
+# 8. ENDPOINT DỰ BÁO THỦ CÔNG
 @app.post("/predict-zone")
 def predict_zone(data: PredictionRequest):
     try:
@@ -201,7 +216,7 @@ def predict_zone(data: PredictionRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi hệ thống: {str(e)}")
 
-# 8. ENDPOINT DỰ BÁO REAL-TIME (TỰ ĐỘNG HOÀN TOÀN)
+# 9. ENDPOINT DỰ BÁO REAL-TIME (TỰ ĐỘNG HOÀN TOÀN)
 @app.post("/predict-realtime")
 def predict_realtime(data: AutoPredictRequest):
     """
@@ -264,7 +279,7 @@ def predict_realtime(data: AutoPredictRequest):
         raise HTTPException(status_code=500, detail=f"Lỗi dự báo real-time: {str(e)}")
 
 
-# 9. ENDPOINT LOG THỜI TIẾT
+# 10. ENDPOINT LOG THỜI TIẾT
 @app.post("/log-weather")
 def log_weather(data: WeatherLogRequest):
     try:
@@ -281,7 +296,7 @@ def log_weather(data: WeatherLogRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi lưu trữ log: {str(e)}")
 
-# 10. ENDPOINT LẤY LỊCH SỬ
+# 11. ENDPOINT LẤY LỊCH SỬ
 @app.get("/get-history/{zone_name}")
 def get_history(zone_name: str):
     try:
@@ -331,7 +346,7 @@ def get_history_by_date(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi truy xuất lịch sử: {str(e)}")
 
-# 11. ENDPOINT DASHBOARD STATS
+# 12. ENDPOINT DASHBOARD STATS
 @app.get("/dashboard-stats")
 def get_dashboard_stats():
     try:
@@ -359,7 +374,7 @@ def get_dashboard_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi lấy thống kê: {str(e)}")
 
-# 12. ROOT ENDPOINT
+# 13. ROOT ENDPOINT
 @app.get("/")
 def read_root():
     return {
