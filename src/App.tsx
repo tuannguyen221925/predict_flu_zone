@@ -344,6 +344,20 @@ const RealtimeTab = () => {
   );
 };
 
+const fieldLabels = {
+  zone_name: { label: 'Tên vùng/Tỉnh thành', hint: 'Khu vực dự báo (tự động chọn)' },
+  avg_temp_max: { label: 'Nhiệt độ cao nhất (°C)', hint: 'VD: 35.5 - Nhiệt độ cao nhất trong kỳ' },
+  avg_temp_med: { label: 'Nhiệt độ trung bình (°C)', hint: 'VD: 28.3 - Nhiệt độ trung bình toàn kỳ' },
+  sum_precip_tot: { label: 'Tổng lượng mưa (mm)', hint: 'VD: 120.5 - Tổng lượng mưa trong kỳ' },
+  avg_humid: { label: 'Độ ẩm trung bình (%)', hint: 'VD: 75 - Độ ẩm không khí (0-100)' },
+  dengue_trends: { label: 'Xu hướng sốt xuất huyết', hint: 'VD: 1.2 - Chỉ số tăng giảm ca bệnh' },
+  symptoms_trends: { label: 'Xu hướng triệu chứng', hint: 'VD: 0.8 - Chỉ số xu hướng triệu chứng' },
+  lag1: { label: 'Lag 1 (tuần trước)', hint: 'VD: 45 - Số ca bệnh tuần trước' },
+  lag2: { label: 'Lag 2 (2 tuần trước)', hint: 'VD: 52 - Số ca bệnh cách 2 tuần' },
+  lag3: { label: 'Lag 3 (3 tuần trước)', hint: 'VD: 48 - Số ca bệnh cách 3 tuần' },
+  ma4: { label: 'MA 4 (trung bình 4 tuần)', hint: 'VD: 48.5 - Trung bình động 4 tuần' },
+};
+
 const ManualInputTab = () => {
   const selectedZone = useStore(s => s.selectedZone);
   const [formData, setFormData] = useState({
@@ -362,6 +376,7 @@ const ManualInputTab = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [tooltip, setTooltip] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -405,55 +420,151 @@ const ManualInputTab = () => {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px' }}>
+    <div style={{ padding: '20px', maxWidth: '900px' }}>
+      <div style={{ marginBottom: '24px', padding: '12px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
+        <p style={{ margin: 0, color: '#1e40af', fontSize: '14px', fontWeight: '500' }}>
+          Gợi ý: Nhập các giá trị dữ liệu thực tế để dự báo số ca sốt xuất huyết. Nếu không biết giá trị chính xác, bạn có thể dùng giá trị trung bình lịch sử.
+        </p>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '20px' }}>
-          {Object.keys(formData).map(key => (
-            <div key={key}>
-              <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
-                {key.replace(/_/g, ' ')}
-              </label>
-              <input
-                type="number"
-                name={key}
-                value={formData[key as keyof typeof formData]}
-                onChange={handleChange}
-                step="any"
-                disabled={key === 'zone_name'}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                }}
-              />
-            </div>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
+          {Object.entries(formData).map(([key, value]) => {
+            const fieldInfo = fieldLabels[key as keyof typeof fieldLabels];
+            const isReadonly = key === 'zone_name';
+            
+            return (
+              <div key={key}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label style={{ display: 'block', fontWeight: '500', fontSize: '13px', color: '#1f2937' }}>
+                    {fieldInfo.label}
+                  </label>
+                  <div 
+                    style={{
+                      position: 'relative',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '16px',
+                      height: '16px',
+                      borderRadius: '50%',
+                      background: '#dbeafe',
+                      color: '#1e40af',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={() => setTooltip(key)}
+                    onMouseLeave={() => setTooltip(null)}
+                  >
+                    ?
+                    {tooltip === key && (
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        marginBottom: '8px',
+                        padding: '8px 12px',
+                        background: '#374151',
+                        color: 'white',
+                        fontSize: '12px',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap',
+                        zIndex: 1000,
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                      }}>
+                        {fieldInfo.hint}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <input
+                  type={isReadonly ? 'text' : 'number'}
+                  name={key}
+                  value={value}
+                  onChange={handleChange}
+                  step="any"
+                  disabled={isReadonly}
+                  placeholder={fieldInfo.hint.split('-')[0].trim()}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    background: isReadonly ? '#f3f4f6' : '#ffffff',
+                    color: isReadonly ? '#9ca3af' : '#1f2937',
+                    cursor: isReadonly ? 'not-allowed' : 'auto',
+                    transition: 'border-color 200ms',
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                />
+                <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+                  {fieldInfo.hint}
+                </p>
+              </div>
+            );
+          })}
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: loading ? '#9ca3af' : '#16a34a',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '16px',
-            fontWeight: '500',
-            cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Đang gửi...' : 'Gửi dự báo'}
-        </button>
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: loading ? '#9ca3af' : '#16a34a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'background-color 200ms',
+            }}
+          >
+            {loading ? 'Đang dự báo...' : 'Dự báo ngay'}
+          </button>
+          <button
+            type="reset"
+            onClick={() => {
+              setFormData(prev => ({ ...prev, zone_name: selectedZone }));
+              setResult(null);
+              setError('');
+            }}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#6b7280',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'background-color 200ms',
+            }}
+          >
+            Xóa dữ liệu
+          </button>
+        </div>
       </form>
 
-      {error && <div style={{ color: 'red', marginTop: '20px' }}>{error}</div>}
+      {error && (
+        <div style={{ padding: '12px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', marginBottom: '16px' }}>
+          {error}
+        </div>
+      )}
+      
       {result && (
-        <div style={{ marginTop: '20px', padding: '16px', background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '8px' }}>
-          <div>Kết quả: <strong>{result.predicted_cases?.toFixed(2)} ca bệnh dự báo</strong></div>
+        <div style={{ padding: '16px', background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '6px' }}>
+          <div style={{ color: '#166534', fontSize: '14px' }}>
+            <strong>Kết quả dự báo:</strong> {result.predicted_cases?.toFixed(1) || 'N/A'} ca bệnh dự kiến
+          </div>
+          <div style={{ marginTop: '8px', fontSize: '12px', color: '#4b5563' }}>
+            Dự báo cho khu vực {selectedZone} dựa trên dữ liệu bạn cung cấp
+          </div>
         </div>
       )}
     </div>
