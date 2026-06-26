@@ -272,6 +272,8 @@ const RealtimeTab = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState('');
+  const [dengueTrends, setDengueTrends] = useState('50');
+  const [symptomsTrends, setSymptomsTrends] = useState('20');
 
   const handlePrediction = async () => {
     setLoading(true);
@@ -280,14 +282,18 @@ const RealtimeTab = () => {
       const response = await fetch('http://localhost:8000/predict-realtime', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ zone_name: selectedZone }),
+        body: JSON.stringify({
+          zone_name: selectedZone,
+          dengue_trends: parseFloat(dengueTrends),
+          symptoms_trends: parseFloat(symptomsTrends),
+        }),
       });
       
-      if (!response.ok) throw new Error('API error');
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError('Lỗi kết nối API. Vui lòng kiểm tra backend.');
+      setError(`Lỗi kết nối API: ${err instanceof Error ? err.message : 'Unknown error'}. Vui lòng kiểm tra backend.`);
     } finally {
       setLoading(false);
     }
@@ -295,6 +301,62 @@ const RealtimeTab = () => {
 
   return (
     <div style={{ padding: '20px' }}>
+      <div style={{ marginBottom: '24px', padding: '12px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
+        <p style={{ margin: 0, color: '#1e40af', fontSize: '14px', fontWeight: '500' }}>
+          Nhập xu hướng hiện tại để dự báo số ca sốt xuất huyết trong khu vực {selectedZone}.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px', color: '#1f2937' }}>
+            Xu hướng sốt xuất huyết (0-100)
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={dengueTrends}
+            onChange={(e) => setDengueTrends(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              fontSize: '14px',
+            }}
+            placeholder="VD: 50"
+          />
+          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+            Chỉ số xu hướng ca bệnh (0-100)
+          </p>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px', color: '#1f2937' }}>
+            Xu hướng triệu chứng (0-100)
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="100"
+            value={symptomsTrends}
+            onChange={(e) => setSymptomsTrends(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              fontSize: '14px',
+            }}
+            placeholder="VD: 20"
+          />
+          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#6b7280' }}>
+            Chỉ số xu hướng triệu chứng (0-100)
+          </p>
+        </div>
+      </div>
+
       <div style={{ marginBottom: '30px' }}>
         <button
           onClick={handlePrediction}
@@ -308,13 +370,18 @@ const RealtimeTab = () => {
             fontSize: '16px',
             fontWeight: '500',
             cursor: loading ? 'not-allowed' : 'pointer',
+            transition: 'background-color 200ms',
           }}
         >
           {loading ? 'Đang dự báo...' : 'Dự báo ngay'}
         </button>
       </div>
 
-      {error && <div style={{ color: 'red', marginBottom: '20px' }}>{error}</div>}
+      {error && (
+        <div style={{ padding: '12px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', marginBottom: '16px', fontSize: '14px' }}>
+          {error}
+        </div>
+      )}
 
       {result && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
@@ -409,11 +476,12 @@ const ManualInputTab = () => {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error('API error');
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError('Lỗi gửi dữ liệu. Vui lòng thử lại.');
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Lỗi gửi dữ liệu: ${errorMsg}. Kiểm tra backend có đang chạy không.`);
     } finally {
       setLoading(false);
     }
