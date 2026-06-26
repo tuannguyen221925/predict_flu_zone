@@ -8,7 +8,6 @@ import { StatisticsTab } from './StatisticsTab';
 type TabType = 'realtime' | 'manual' | 'statistics';
 
 export const Dashboard: React.FC = () => {
-  console.log('[v0] Dashboard component rendering');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('realtime');
 
