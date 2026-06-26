@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useStore } from './stores/useStore';
 import { format, parseISO } from 'date-fns';
 import { viVN } from 'date-fns/locale';
@@ -19,6 +19,253 @@ const zones = [
   'DaNang', 'Hue', 'NhaTrang', 'BinhDinh',
   'HCM', 'CanTho', 'BinhDuong', 'DongNai', 'VungTau', 'TienGiang'
 ];
+
+const COLORS = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
+
+// Mock data generator for demo
+const generateMockHistoryData = () => {
+  const data = [];
+  for (let i = 0; i < 20; i++) {
+    data.push({
+      week: `W${20 - i}`,
+      cases: Math.floor(Math.random() * 150) + 30,
+      temp: Math.floor(Math.random() * 10) + 25,
+      humidity: Math.floor(Math.random() * 30) + 60,
+      trend: Math.random() > 0.5 ? 'up' : 'down',
+    });
+  }
+  return data.reverse();
+};
+
+const DashboardStats = () => {
+  const selectedZone = useStore(s => s.selectedZone);
+  const [history, setHistory] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Try to fetch real data, fallback to mock data
+        try {
+          const response = await fetch(`http://localhost:8000/get-history/${selectedZone}`);
+          if (response.ok) {
+            const data = await response.json();
+            setHistory(Array.isArray(data) ? data : data.predictions || generateMockHistoryData());
+          } else {
+            setHistory(generateMockHistoryData());
+          }
+        } catch {
+          setHistory(generateMockHistoryData());
+        }
+
+        // Calculate stats
+        if (history.length > 0) {
+          const avgCases = history.reduce((a, b) => a + (b.predicted_cases || b.cases || 0), 0) / history.length;
+          const maxCases = Math.max(...history.map(h => h.predicted_cases || h.cases || 0));
+          const minCases = Math.min(...history.map(h => h.predicted_cases || h.cases || 0));
+          setStats({
+            avgCases: avgCases.toFixed(1),
+            maxCases: maxCases.toFixed(0),
+            minCases: minCases.toFixed(0),
+            totalRecords: history.length,
+          });
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedZone, history.length]);
+
+  const chartData = useMemo(() => {
+    return history.slice(-20).map((item, idx) => ({
+      name: `T${idx + 1}`,
+      cases: item.predicted_cases || item.cases || 0,
+      temp: item.avg_temp_med || item.temp || 0,
+      humidity: item.avg_humid || item.humidity || 0,
+    }));
+  }, [history]);
+
+  const riskDistribution = useMemo(() => {
+    if (history.length === 0) return [];
+    const low = history.filter(h => (h.predicted_cases || h.cases || 0) < 50).length;
+    const medium = history.filter(h => {
+      const cases = h.predicted_cases || h.cases || 0;
+      return cases >= 50 && cases <= 100;
+    }).length;
+    const high = history.filter(h => (h.predicted_cases || h.cases || 0) > 100).length;
+    
+    return [
+      { name: 'Thấp (<50)', value: low, color: '#10b981' },
+      { name: 'Trung bình (50-100)', value: medium, color: '#f59e0b' },
+      { name: 'Cao (>100)', value: high, color: '#ef4444' },
+    ].filter(d => d.value > 0);
+  }, [history]);
+
+  if (loading) return <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>Đang tải dữ liệu...</div>;
+
+  return (
+    <div style={{ padding: '20px' }}>
+      {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '30px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '8px', padding: '20px', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '8px' }}>Trung bình ca bệnh</div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{stats?.avgCases || 'N/A'}</div>
+          <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>Tuần này</div>
+        </div>
+
+        <div style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', borderRadius: '8px', padding: '20px', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '8px' }}>Cao nhất</div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{stats?.maxCases || 'N/A'}</div>
+          <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>Đỉnh ghi nhận</div>
+        </div>
+
+        <div style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', borderRadius: '8px', padding: '20px', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '8px' }}>Thấp nhất</div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{stats?.minCases || 'N/A'}</div>
+          <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>Thấp nhất ghi nhận</div>
+        </div>
+
+        <div style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', borderRadius: '8px', padding: '20px', color: 'white', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+          <div style={{ fontSize: '13px', opacity: 0.9, marginBottom: '8px' }}>Tổng bản ghi</div>
+          <div style={{ fontSize: '32px', fontWeight: 'bold' }}>{stats?.totalRecords || 'N/A'}</div>
+          <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>Dữ liệu sẵn có</div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+        {/* Line Chart */}
+        <div style={{ background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#1f2937' }}>Xu hướng ca bệnh theo thời gian</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" stroke="#9ca3af" />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip 
+                contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+              />
+              <Legend />
+              <Line type="monotone" dataKey="cases" stroke="#1e40af" strokeWidth={2} dot={{ fill: '#1e40af', r: 4 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Area Chart */}
+        <div style={{ background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#1f2937' }}>Độ ẩm & Nhiệt độ</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" stroke="#9ca3af" />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip 
+                contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+              />
+              <Legend />
+              <Area type="monotone" dataKey="humidity" stackId="1" stroke="#f59e0b" fill="#fef3c7" />
+              <Area type="monotone" dataKey="temp" stackId="1" stroke="#3b82f6" fill="#dbeafe" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Bottom Row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px' }}>
+        {/* Bar Chart */}
+        <div style={{ background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#1f2937' }}>So sánh theo kỳ</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={chartData.slice(-10)}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" stroke="#9ca3af" />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip 
+                contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '6px' }}
+              />
+              <Bar dataKey="cases" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Pie Chart */}
+        <div style={{ background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#1f2937' }}>Phân bố mức độ rủi ro</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={riskDistribution}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={(entry) => `${entry.name}: ${entry.value}`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {riskDistribution.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <div style={{ marginTop: '30px', background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#1f2937' }}>Dữ liệu chi tiết</h3>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                <th style={{ textAlign: 'left', padding: '12px', color: '#374151', fontWeight: '600' }}>STT</th>
+                <th style={{ textAlign: 'left', padding: '12px', color: '#374151', fontWeight: '600' }}>Ca bệnh</th>
+                <th style={{ textAlign: 'left', padding: '12px', color: '#374151', fontWeight: '600' }}>Nhiệt độ</th>
+                <th style={{ textAlign: 'left', padding: '12px', color: '#374151', fontWeight: '600' }}>Độ ẩm</th>
+                <th style={{ textAlign: 'left', padding: '12px', color: '#374151', fontWeight: '600' }}>Mức độ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.slice(-15).map((item, idx) => {
+                const cases = item.predicted_cases || item.cases || 0;
+                const riskLevel = cases < 50 ? 'Thấp' : cases <= 100 ? 'Trung bình' : 'Cao';
+                const riskColor = cases < 50 ? '#10b981' : cases <= 100 ? '#f59e0b' : '#ef4444';
+                
+                return (
+                  <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', hover: { background: '#f9fafb' } }}>
+                    <td style={{ padding: '12px', color: '#6b7280' }}>{15 - idx}</td>
+                    <td style={{ padding: '12px', color: '#1f2937', fontWeight: '500' }}>{cases.toFixed(0)}</td>
+                    <td style={{ padding: '12px', color: '#6b7280' }}>{(item.avg_temp_med || item.temp || 0).toFixed(1)}°C</td>
+                    <td style={{ padding: '12px', color: '#6b7280' }}>{(item.avg_humid || item.humidity || 0).toFixed(0)}%</td>
+                    <td style={{ padding: '12px' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: 'white',
+                        background: riskColor,
+                      }}>
+                        {riskLevel}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const RealtimeTab = () => {
   const selectedZone = useStore(s => s.selectedZone);
@@ -340,12 +587,12 @@ const Sidebar = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) 
 const Dashboard = () => {
   const selectedZone = useStore(s => s.selectedZone);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'realtime' | 'manual' | 'statistics'>('realtime');
+  const [activeTab, setActiveTab] = useState<'statistics' | 'realtime' | 'manual'>('statistics');
 
   const tabs = [
+    { id: 'statistics' as const, label: 'Thống kê & Phân tích', icon: '📊' },
     { id: 'realtime' as const, label: 'Dự báo Real-time', icon: '⚡' },
     { id: 'manual' as const, label: 'Dự báo Thủ công', icon: '📝' },
-    { id: 'statistics' as const, label: 'Thống kê', icon: '📊' },
   ];
 
   return (
@@ -387,9 +634,9 @@ const Dashboard = () => {
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
+          {activeTab === 'statistics' && <DashboardStats />}
           {activeTab === 'realtime' && <RealtimeTab />}
           {activeTab === 'manual' && <ManualInputTab />}
-          {activeTab === 'statistics' && <StatisticsTab />}
         </div>
       </main>
     </div>
