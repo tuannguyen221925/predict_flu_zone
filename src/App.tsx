@@ -478,7 +478,6 @@ const RealtimeTab = () => {
       )}
 
       {result && (
-<<<<<<< HEAD
         <div>
           {/* Current Week Prediction */}
           <div style={{ marginBottom: '30px', background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -487,7 +486,7 @@ const RealtimeTab = () => {
               <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '8px', padding: '20px', color: 'white' }}>
                 <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>🦟 Ca bệnh dự báo</div>
                 <div style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  {result.predicted_cases?.toFixed(0) || 'N/A'}
+                  {result.predicted_cases?.toFixed(0) || result.data?.predicted_cases?.toFixed(0) || 'N/A'}
                 </div>
                 <div style={{ fontSize: '12px', opacity: 0.9 }}>Số ca sốt xuất huyết</div>
               </div>
@@ -495,7 +494,7 @@ const RealtimeTab = () => {
               <div style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderRadius: '8px', padding: '20px', color: 'white' }}>
                 <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>🌡️ Nhiệt độ</div>
                 <div style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  {result.avg_temp_med?.toFixed(1) || 'N/A'}°C
+                  {result.weather_data?.temperature?.toFixed(1) || result.avg_temp_med?.toFixed(1) || 'N/A'}°C
                 </div>
                 <div style={{ fontSize: '12px', opacity: 0.9 }}>Trung bình</div>
               </div>
@@ -503,7 +502,7 @@ const RealtimeTab = () => {
               <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', borderRadius: '8px', padding: '20px', color: 'white' }}>
                 <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>💧 Độ ẩm</div>
                 <div style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  {result.avg_humid?.toFixed(0) || 'N/A'}%
+                  {result.weather_data?.humidity?.toFixed(0) || result.avg_humid?.toFixed(0) || 'N/A'}%
                 </div>
                 <div style={{ fontSize: '12px', opacity: 0.9 }}>Không khí</div>
               </div>
@@ -538,27 +537,6 @@ const RealtimeTab = () => {
                   </div>
                 </div>
               ))}
-=======
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-          <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '14px', color: '#166534', marginBottom: '8px' }}>Dự báo ca bệnh</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#166534' }}>
-              {result.predicted_cases?.toFixed(0) || result.data?.predicted_cases?.toFixed(0) || 'N/A'}
-            </div>
-          </div>
-
-          <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '14px', color: '#b45309', marginBottom: '8px' }}>Nhiệt độ trung bình</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#b45309' }}>
-              {result.weather_data?.temperature?.toFixed(1) || result.avg_temp_med?.toFixed(1) || 'N/A'}°C
-            </div>
-          </div>
-
-          <div style={{ background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '14px', color: '#1e40af', marginBottom: '8px' }}>Độ ẩm</div>
-            <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e40af' }}>
-              {result.weather_data?.humidity?.toFixed(0) || result.avg_humid?.toFixed(0) || 'N/A'}%
->>>>>>> dev
             </div>
           </div>
         </div>
