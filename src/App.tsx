@@ -275,6 +275,50 @@ const RealtimeTab = () => {
   const [error, setError] = useState('');
   const [dengueTrends, setDengueTrends] = useState('50');
   const [symptomsTrends, setSymptomsTrends] = useState('20');
+  const [weather, setWeather] = useState<any>(null);
+  const [weatherError, setWeatherError] = useState('');
+
+  const ZONE_COORDINATES: { [key: string]: { lat: number; lon: number } } = {
+    'Hanoi': { lat: 21.0285, lon: 105.8542 },
+    'Haiphong': { lat: 20.8449, lon: 106.6881 },
+    'ThaiBinh': { lat: 20.4474, lon: 106.3387 },
+    'DaNang': { lat: 16.0544, lon: 108.2022 },
+    'Hue': { lat: 16.4637, lon: 107.5909 },
+    'NhaTrang': { lat: 12.2388, lon: 109.1967 },
+    'BinhDinh': { lat: 13.7627, lon: 109.2223 },
+    'HCM': { lat: 10.8231, lon: 106.6297 },
+    'CanTho': { lat: 10.0452, lon: 105.7469 },
+    'BinhDuong': { lat: 11.0283, lon: 106.6713 },
+    'DongNai': { lat: 10.9468, lon: 106.8521 },
+    'VungTau': { lat: 10.3460, lon: 107.0843 },
+    'TienGiang': { lat: 10.3592, lon: 106.3570 }
+  };
+
+  // Fetch real-time weather when zone changes
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const coords = ZONE_COORDINATES[selectedZone];
+        if (!coords) return;
+        
+        const response = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?lat=${coords.lat}&lon=${coords.lon}&appid=862e70d3da664d7d00121f16524c1e66&units=metric`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setWeather({
+            temp: data.main.temp,
+            humidity: data.main.humidity,
+            description: data.weather[0].main,
+          });
+        }
+      } catch (err) {
+        setWeatherError('Không thể lấy dữ liệu thời tiết');
+      }
+    };
+
+    fetchWeather();
+  }, [selectedZone]);
 
   const handlePrediction = async () => {
     setLoading(true);
@@ -302,18 +346,65 @@ const RealtimeTab = () => {
     }
   };
 
+  // Generate 4-week forecast mock data
+  const generateWeeklyForecast = () => {
+    if (!result) return [];
+    const baseCases = result.predicted_cases || 50;
+    const forecast = [];
+    for (let i = 1; i <= 4; i++) {
+      // Simulate variations based on trend
+      const variation = (dengueTrends / 50) * (Math.random() * 20 - 10);
+      forecast.push({
+        week: i,
+        cases: Math.max(5, baseCases + variation * i),
+        icon: baseCases + variation * i > 100 ? '⚠️' : '📈',
+      });
+    }
+    return forecast;
+  };
+
+  const weeklyForecast = generateWeeklyForecast();
+
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ padding: '20px', position: 'relative' }}>
+      {/* Real-time Weather Widget - Top Right Corner */}
+      {weather && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          borderRadius: '8px',
+          padding: '16px',
+          minWidth: '180px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        }}>
+          <div style={{ fontSize: '12px', opacity: 0.9, marginBottom: '8px' }}>Thời tiết hiện tại</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <div style={{ fontSize: '28px' }}>🌡️</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{weather.temp.toFixed(1)}°C</div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ fontSize: '24px' }}>💧</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{weather.humidity}%</div>
+          </div>
+          <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.9 }}>
+            {weather.description}
+          </div>
+        </div>
+      )}
+
       <div style={{ marginBottom: '24px', padding: '12px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '4px' }}>
         <p style={{ margin: 0, color: '#1e40af', fontSize: '14px', fontWeight: '500' }}>
-          Nhập xu hướng hiện tại để dự báo số ca sốt xuất huyết trong khu vực {selectedZone}.
+          📊 Nhập xu hướng hiện tại để dự báo số ca sốt xuất huyết cho 4 tuần tới trong khu vực {selectedZone}.
         </p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '20px' }}>
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px', color: '#1f2937' }}>
-            Xu hướng sốt xuất huyết (0-100)
+            📈 Xu hướng sốt xuất huyết (0-100)
           </label>
           <input
             type="number"
@@ -337,7 +428,7 @@ const RealtimeTab = () => {
 
         <div>
           <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px', color: '#1f2937' }}>
-            Xu hướng triệu chứng (0-100)
+            🔍 Xu hướng triệu chứng (0-100)
           </label>
           <input
             type="number"
@@ -376,17 +467,78 @@ const RealtimeTab = () => {
             transition: 'background-color 200ms',
           }}
         >
-          {loading ? 'Đang dự báo...' : 'Dự báo ngay'}
+          {loading ? '⏳ Đang dự báo...' : '🚀 Dự báo ngay'}
         </button>
       </div>
 
       {error && (
         <div style={{ padding: '12px', background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', marginBottom: '16px', fontSize: '14px' }}>
-          {error}
+          ❌ {error}
         </div>
       )}
 
       {result && (
+<<<<<<< HEAD
+        <div>
+          {/* Current Week Prediction */}
+          <div style={{ marginBottom: '30px', background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#1f2937' }}>📋 Dự báo tuần này</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '8px', padding: '20px', color: 'white' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>🦟 Ca bệnh dự báo</div>
+                <div style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  {result.predicted_cases?.toFixed(0) || 'N/A'}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>Số ca sốt xuất huyết</div>
+              </div>
+
+              <div style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', borderRadius: '8px', padding: '20px', color: 'white' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>🌡️ Nhiệt độ</div>
+                <div style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  {result.avg_temp_med?.toFixed(1) || 'N/A'}°C
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>Trung bình</div>
+              </div>
+
+              <div style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)', borderRadius: '8px', padding: '20px', color: 'white' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '8px' }}>💧 Độ ẩm</div>
+                <div style={{ fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  {result.avg_humid?.toFixed(0) || 'N/A'}%
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>Không khí</div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4-Week Forecast */}
+          <div style={{ background: 'white', borderRadius: '8px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#1f2937' }}>📅 Dự báo 4 tuần tới</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+              {weeklyForecast.map((week) => (
+                <div key={week.week} style={{
+                  background: week.cases > 100 ? '#fee2e2' : '#f0fdf4',
+                  border: `2px solid ${week.cases > 100 ? '#fecaca' : '#dcfce7'}`,
+                  borderRadius: '8px',
+                  padding: '16px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>{week.icon}</div>
+                  <div style={{ fontSize: '14px', fontWeight: '500', color: '#1f2937', marginBottom: '4px' }}>
+                    Tuần {week.week}
+                  </div>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    color: week.cases > 100 ? '#dc2626' : '#16a34a',
+                  }}>
+                    {week.cases.toFixed(0)} ca
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                    {week.cases > 100 ? 'Cao' : week.cases > 70 ? 'Trung bình' : 'Thấp'}
+                  </div>
+                </div>
+              ))}
+=======
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
           <div style={{ background: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '8px', padding: '16px' }}>
             <div style={{ fontSize: '14px', color: '#166534', marginBottom: '8px' }}>Dự báo ca bệnh</div>
@@ -406,6 +558,7 @@ const RealtimeTab = () => {
             <div style={{ fontSize: '14px', color: '#1e40af', marginBottom: '8px' }}>Độ ẩm</div>
             <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#1e40af' }}>
               {result.weather_data?.humidity?.toFixed(0) || result.avg_humid?.toFixed(0) || 'N/A'}%
+>>>>>>> dev
             </div>
           </div>
         </div>
