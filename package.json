@@ -1,0 +1,40 @@
+{
+  "name": "v0-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tuannguyen221925/predict_flu_zone.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/tuannguyen221925/predict_flu_zone/issues"
+  },
+  "homepage": "https://github.com/tuannguyen221925/predict_flu_zone#readme",
+  "dependencies": {
+    "@tanstack/react-query": "^5.101.1",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "recharts": "^3.9.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.0"
+  }
+}
