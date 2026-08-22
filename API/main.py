@@ -6,16 +6,20 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 import requests
+from dotenv import load_dotenv
 
 # KHÔNG DÙNG MOTOR ĐỂ TRÁNH LỖI SSL WINDOWS, DÙNG PYMONGO CHUẨN
 from pymongo import MongoClient 
+
+load_dotenv()
 
 # 1. Khởi tạo ứng dụng FastAPI
 app = FastAPI(title="Hệ thống Dự báo Sốt xuất huyết & Big Data MongoDB")
 
 # 2. CẤU HÌNH KẾT NỐI MONGODB
 try:
-    client = MongoClient("mongodb://localhost:27017", serverSelectionTimeoutMS=5000)
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client["dengue_bigdata_db"]
     history_collection = db["prediction_history"]
     weather_logs_collection = db["weather_logs_realtime"]
@@ -24,7 +28,7 @@ except Exception as e:
     print(f"⚠️ Lỗi kết nối MongoDB: {e}")
 
 # 3. CẤU HÌNH API THỜI TIẾT (OpenWeatherMap)
-WEATHER_API_KEY = "862e70d3da664d7d00121f16524c1e66" 
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 WEATHER_BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 # Tọa độ các tỉnh/thành Việt Nam
@@ -50,7 +54,7 @@ ZONE_COORDINATES = {
 }
 
 # 4. NẠP MÔ HÌNH MLP & SCALER
-MODELS_DIR = r"E:\predict_zone_flu\models"
+MODELS_DIR = os.getenv("MODELS_DIR", "./models")
 scaler_y = None
 
 try:
