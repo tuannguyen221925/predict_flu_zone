@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
-from API.app.state import state
+from app.state import state
 
 router = APIRouter(tags=["History"])
 

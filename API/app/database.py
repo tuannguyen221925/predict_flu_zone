@@ -6,8 +6,8 @@ import logging
 
 from pymongo import MongoClient
 
-from API.app.config import MONGO_DB_NAME, MONGO_URI
-from API.app.state import state
+from app.config import MONGO_DB_NAME, MONGO_URI
+from app.state import state
 
 logger = logging.getLogger(__name__)
 

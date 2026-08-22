@@ -6,7 +6,7 @@ import logging
 
 import requests
 
-from API.app.config import WEATHER_API_KEY, WEATHER_BASE_URL, ZONE_COORDINATES
+from app.config import WEATHER_API_KEY, WEATHER_BASE_URL, ZONE_COORDINATES
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def get_weather_realtime(zone_name: str) -> dict | None:
 
 def get_latest_lags(zone_name: str) -> dict:
     """Lấy lag1, lag2, lag3, ma4 từ lịch sử dự báo của một vùng."""
-    from API.app.state import state
+    from app.state import state
 
     last_records = list(
         state.history_collection.find({"zone_name": zone_name})

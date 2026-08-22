@@ -6,8 +6,8 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 
-from API.app.schemas import WeatherLogRequest
-from API.app.state import state
+from app.schemas import WeatherLogRequest
+from app.state import state
 
 router = APIRouter(tags=["Weather"])
 

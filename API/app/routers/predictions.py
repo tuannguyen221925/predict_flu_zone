@@ -7,10 +7,10 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
 
-from API.app.ml import run_inference
-from API.app.schemas import AutoPredictRequest, PredictionRequest
-from API.app.state import state
-from API.app.weather_service import get_latest_lags, get_weather_realtime
+from app.ml import run_inference
+from app.schemas import AutoPredictRequest, PredictionRequest
+from app.state import state
+from app.weather_service import get_latest_lags, get_weather_realtime
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Predictions"])

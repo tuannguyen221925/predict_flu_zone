@@ -6,11 +6,11 @@ import logging
 
 from fastapi import FastAPI
 
-from API.app.database import init_db
-from API.app.ml import load_ml_artifacts
-from API.app.routers.history import router as history_router
-from API.app.routers.predictions import router as predictions_router
-from API.app.routers.weather_log import router as weather_router
+from app.database import init_db
+from app.ml import load_ml_artifacts
+from app.routers.history import router as history_router
+from app.routers.predictions import router as predictions_router
+from app.routers.weather_log import router as weather_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)

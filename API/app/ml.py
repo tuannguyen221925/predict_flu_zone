@@ -8,8 +8,8 @@ import os
 import joblib
 import numpy as np
 
-from API.app.config import MODEL_PATH, ORDERED_COLUMNS, SCALER_X_PATH, SCALER_Y_PATH
-from API.app.state import state
+from app.config import MODEL_PATH, ORDERED_COLUMNS, SCALER_X_PATH, SCALER_Y_PATH
+from app.state import state
 
 logger = logging.getLogger(__name__)
 
