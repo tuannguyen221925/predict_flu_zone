@@ -17,6 +17,15 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Hệ thống Dự báo Sốt xuất huyết & Big Data MongoDB")
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],          # production: giới hạn domain cụ thể thay vì "*"
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 @app.on_event("startup")
 def on_startup():
